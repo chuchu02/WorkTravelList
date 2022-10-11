@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { theme } from "./color";
+import { Fontisto } from "@expo/vector-icons";
+import { theme } from "./colors";
 
 const STORAGE_KEY = "@toDos";
 
@@ -24,11 +26,17 @@ export default function App() {
   const work = () => setWorking(true);
   const onChangeText = (payload) => setText(payload);
   const saveToDos = async (toSave) => {
-    await AsyncStorage.setItem("@toDos", JSON.stringify(toSave));
+    try {
+      await AsyncStorage.setItem("@toDos", JSON.stringify(toSave));
+    } catch (error) {}
   };
   const loadToDos = async () => {
-    const s = await AsyncStorage.getItem(STORAGE_KEY);
-    setToDos(JSON.parse(s));
+    try {
+      const s = await AsyncStorage.getItem(STORAGE_KEY);
+      return s != null ? setToDos(JSON.parse(s)) : null;
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const addToDo = async () => {
@@ -42,6 +50,20 @@ export default function App() {
     setToDos(newToDos);
     await saveToDos(newToDos);
     setText("");
+  };
+  const deleteToDo = (key) => {
+    Alert.alert("To Do를 삭제하시겠습니까?", "확실합니까?", [
+      {
+        text: "확인",
+        onPress: () => {
+          const newToDos = { ...toDos };
+          delete newToDos[key];
+          setToDos(newToDos);
+          saveToDos(newToDos);
+        },
+      },
+      { text: "취소" },
+    ]);
   };
   return (
     <View style={styles.container}>
@@ -76,8 +98,11 @@ export default function App() {
       <ScrollView>
         {Object.keys(toDos).map((key) =>
           toDos[key].working === working ? (
-            <View style={styles.toDO} key={key}>
+            <View style={styles.toDo} key={key}>
               <Text style={styles.toDoText}>{toDos[key].text}</Text>
+              <TouchableOpacity onPress={() => deleteToDo(key)}>
+                <Fontisto name="trash" size={18} color={theme.grey} />
+              </TouchableOpacity>
             </View>
           ) : null
         )}
@@ -109,12 +134,15 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     fontSize: 18,
   },
-  toDO: {
+  toDo: {
     backgroundColor: theme.toDoBg,
     marginBottom: 10,
     paddingVertical: 20,
     paddingHorizontal: 20,
     borderRadius: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   toDoText: {
     color: "white",
